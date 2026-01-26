@@ -185,6 +185,7 @@ export const getProfile = async (req: AuthRequest, res: Response): Promise<void>
           rating: user.rating,
           totalReviews: user.totalReviews,
           address: user.address,
+          savedAddresses: user.savedAddresses,
           availability: user.availability,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt,

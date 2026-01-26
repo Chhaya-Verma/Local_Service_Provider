@@ -1,6 +1,9 @@
 import { Router } from "express";
 import authRoutes from "./auth";
 import serviceRoutes from "./services";
+import bookingRoutes from "./bookings";
+import supportRoutes from "./support";
+import addressRoutes from "./addresses";
 
 const router = Router();
 
@@ -9,6 +12,15 @@ router.use("/auth", authRoutes);
 
 // Mount service routes
 router.use("/services", serviceRoutes);
+
+// Mount booking routes
+router.use("/bookings", bookingRoutes);
+
+// Mount support routes
+router.use("/support", supportRoutes);
+
+// Mount address routes
+router.use("/addresses", addressRoutes);
 
 // Health check route
 router.get("/health", (req, res) => {
