@@ -19,6 +19,19 @@ export interface IUser extends Document {
       longitude: number;
     };
   };
+  savedAddresses?: {
+    _id?: mongoose.Types.ObjectId;
+    label: string;
+    street: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    isDefault: boolean;
+    coordinates?: {
+      latitude: number;
+      longitude: number;
+    };
+  }[];
   // Service provider specific fields
   businessName?: string;
   businessDescription?: string;
@@ -94,6 +107,44 @@ const userSchema = new Schema<IUser>(
         longitude: { type: Number },
       },
     },
+    savedAddresses: [
+      {
+        label: {
+          type: String,
+          required: true,
+          trim: true,
+          maxlength: [50, "Address label cannot exceed 50 characters"],
+        },
+        street: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        city: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        state: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        zipCode: {
+          type: String,
+          required: true,
+          trim: true,
+        },
+        isDefault: {
+          type: Boolean,
+          default: false,
+        },
+        coordinates: {
+          latitude: { type: Number },
+          longitude: { type: Number },
+        },
+      },
+    ],
     // Service Provider specific fields
     businessName: {
       type: String,
