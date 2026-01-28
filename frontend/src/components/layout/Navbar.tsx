@@ -62,12 +62,20 @@ const Navbar: React.FC = () => {
                   </Link>
                 )}
                 {user?.userType === 'service_provider' && (
-                  <Link
-                    href="/my-services"
-                    className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
-                  >
-                    My Services
-                  </Link>
+                  <>
+                    <Link
+                      href="/provider/dashboard"
+                      className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
+                    >
+                      Provider Dashboard
+                    </Link>
+                    <Link
+                      href="/my-services"
+                      className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
+                    >
+                      My Services
+                    </Link>
+                  </>
                 )}
 
                 {/* User Dropdown */}

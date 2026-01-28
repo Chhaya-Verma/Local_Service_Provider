@@ -4,7 +4,7 @@ import { IUser } from "../models/User";
 interface JWTPayload {
   userId: string;
   email: string;
-  userType: "customer" | "service_provider";
+  userType: "customer" | "service_provider" | "admin";
 }
 
 export const generateToken = (user: IUser): string => {

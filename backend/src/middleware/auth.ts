@@ -40,6 +40,16 @@ export const authenticate = async (
       }
 
       if (!user.isVerified) {
+        // For service providers, allow access even if not verified
+        // They need to submit applications and will be verified through admin approval
+        if (user.userType === "service_provider") {
+          // Allow access but they won't be able to create services until approved
+          req.user = user;
+          next();
+          return;
+        }
+        
+        // For customers and admins, require verification
         res.status(401).json({
           success: false,
           message: "Access denied. Please verify your account first.",
@@ -115,6 +125,31 @@ export const authorizeCustomer = (
   next();
 };
 
+// Middleware to check if user is admin
+export const authorizeAdmin = (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): void => {
+  if (!req.user) {
+    res.status(401).json({
+      success: false,
+      message: "Authentication required.",
+    });
+    return;
+  }
+
+  if (req.user.userType !== "admin") {
+    res.status(403).json({
+      success: false,
+      message: "Access denied. Admin privileges required.",
+    });
+    return;
+  }
+
+  next();
+};
+
 // Middleware to allow both customer and service provider
 export const authorizeUser = (
   req: AuthRequest,
@@ -129,8 +164,8 @@ export const authorizeUser = (
     return;
   }
 
-  // Allow both customer and service_provider
-  if (!["customer", "service_provider"].includes(req.user.userType)) {
+  // Allow customer, service_provider, and admin
+  if (!["customer", "service_provider", "admin"].includes(req.user.userType)) {
     res.status(403).json({
       success: false,
       message: "Access denied. Invalid user type.",
