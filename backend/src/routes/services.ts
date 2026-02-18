@@ -13,13 +13,15 @@ import { authenticate, authorizeServiceProvider } from "../middleware/auth";
 const router = Router();
 
 // Public routes
-router.get("/", getServices);
 router.get("/categories", getServiceCategories);
-router.get("/:id", getServiceById);
+router.get("/", getServices);
 
 // Protected routes for service providers
 router.post("/", authenticate, authorizeServiceProvider, createService);
 router.get("/provider/my-services", authenticate, authorizeServiceProvider, getServicesByProvider);
+
+// Parameterized routes (must be at the end)
+router.get("/:id", getServiceById);
 router.put("/:id", authenticate, authorizeServiceProvider, updateService);
 router.delete("/:id", authenticate, authorizeServiceProvider, deleteService);
 

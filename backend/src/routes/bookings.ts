@@ -6,6 +6,7 @@ import {
   cancelBooking,
   rescheduleBooking,
   rateService,
+  updateBookingStatus,
 } from "../controllers/bookingController";
 import { authenticate, authorizeCustomer } from "../middleware/auth";
 
@@ -31,5 +32,8 @@ router.patch("/:bookingId/reschedule", authorizeCustomer, rescheduleBooking);
 
 // Rate and review service (customers only)
 router.patch("/:bookingId/rate", authorizeCustomer, rateService);
+
+// Update booking status (service providers only)
+router.patch("/:bookingId/status", updateBookingStatus);
 
 export default router;

@@ -25,6 +25,15 @@ export const createBooking = async (req: AuthRequest, res: Response): Promise<vo
       paymentMethod,
     } = req.body;
 
+    // Validate address is provided
+    if (!address || !address.street || !address.city || !address.state || !address.zipCode) {
+      res.status(400).json({
+        success: false,
+        message: "Complete address is required (street, city, state, zipCode)",
+      });
+      return;
+    }
+
     // Fetch service details
     const service = await Service.findById(serviceId);
     if (!service) {
@@ -175,7 +184,15 @@ export const getCustomerBookings = async (req: AuthRequest, res: Response): Prom
       sortOrder = "desc"
     } = req.query;
 
-    const query: any = { customerId: user._id };
+    // If user is a service provider, get their service bookings
+    let query: any;
+    if (user.userType === "service_provider") {
+      query = { serviceProviderId: user._id };
+    } else {
+      // If customer, get their bookings
+      query = { customerId: user._id };
+    }
+
     if (status && status !== "all") {
       query.status = status;
     }
@@ -188,9 +205,19 @@ export const getCustomerBookings = async (req: AuthRequest, res: Response): Prom
     const skip = (pageNum - 1) * limitNum;
 
     const bookings = await Booking.find(query)
+      .populate('serviceId', 'title description category price location rating totalReviews images')
+      .populate({
+        path: 'serviceId',
+        populate: {
+          path: 'serviceProviderId',
+          select: 'businessName avatar rating totalReviews'
+        }
+      })
+      .populate('customerId', 'name email phone')
       .sort(sortOptions)
       .skip(skip)
-      .limit(limitNum);
+      .limit(limitNum)
+      .lean();
 
     const total = await Booking.countDocuments(query);
 
@@ -207,7 +234,7 @@ export const getCustomerBookings = async (req: AuthRequest, res: Response): Prom
       },
     });
   } catch (error: any) {
-    console.error("Get customer bookings error:", error);
+    console.error("Get bookings error:", error);
     res.status(500).json({
       success: false,
       message: "Internal server error while fetching bookings",
@@ -228,7 +255,17 @@ export const getBookingById = async (req: AuthRequest, res: Response): Promise<v
     }
 
     const { bookingId } = req.params;
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId)
+      .populate('serviceId', 'title description category price location rating totalReviews images')
+      .populate({
+        path: 'serviceId',
+        populate: {
+          path: 'serviceProviderId',
+          select: 'businessName avatar rating totalReviews'
+        }
+      })
+      .populate('customerId', 'name email phone')
+      .lean();
 
     if (!booking) {
       res.status(404).json({
@@ -239,7 +276,7 @@ export const getBookingById = async (req: AuthRequest, res: Response): Promise<v
     }
 
     // Check if user has access to this booking
-    const hasAccess = booking.customerId.toString() === user._id.toString() ||
+    const hasAccess = (booking.customerId as any)._id?.toString() === user._id.toString() ||
                      booking.serviceProviderId.toString() === user._id.toString();
 
     if (!hasAccess) {
@@ -534,6 +571,85 @@ export const rateService = async (req: AuthRequest, res: Response): Promise<void
     res.status(500).json({
       success: false,
       message: "Internal server error while rating service",
+    });
+  }
+};
+
+// Update booking status (Service Provider only)
+export const updateBookingStatus = async (req: AuthRequest, res: Response): Promise<void> => {
+  try {
+    const user = req.user;
+    if (!user || user.userType !== "service_provider") {
+      res.status(403).json({
+        success: false,
+        message: "Only service providers can update booking status",
+      });
+      return;
+    }
+
+    const { bookingId } = req.params;
+    const { status } = req.body;
+
+    if (!["pending", "confirmed", "in_progress", "completed", "cancelled"].includes(status)) {
+      res.status(400).json({
+        success: false,
+        message: "Invalid status",
+      });
+      return;
+    }
+
+    const booking = await Booking.findById(bookingId);
+    if (!booking) {
+      res.status(404).json({
+        success: false,
+        message: "Booking not found",
+      });
+      return;
+    }
+
+    // Check if user is the service provider for this booking
+    if (booking.serviceProviderId.toString() !== user._id.toString()) {
+      res.status(403).json({
+        success: false,
+        message: "Access denied to this booking",
+      });
+      return;
+    }
+
+    // Validate status transitions
+    const validTransitions: { [key: string]: string[] } = {
+      pending: ["confirmed", "cancelled"],
+      confirmed: ["in_progress", "cancelled"],
+      in_progress: ["completed", "cancelled"],
+      completed: [],
+      cancelled: [],
+    };
+
+    if (!validTransitions[booking.status]?.includes(status)) {
+      res.status(400).json({
+        success: false,
+        message: `Cannot transition from ${booking.status} to ${status}`,
+      });
+      return;
+    }
+
+    booking.status = status;
+    if (status === "completed") {
+      booking.completedAt = new Date();
+    }
+
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: `Booking status updated to ${status}`,
+      data: { booking },
+    });
+  } catch (error: any) {
+    console.error("Update booking status error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Internal server error while updating booking status",
     });
   }
 };
