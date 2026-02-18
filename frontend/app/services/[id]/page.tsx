@@ -36,6 +36,30 @@ const ServiceDetailPage: React.FC = () => {
     }
   }, [id, user]);
 
+  // Format profile address for display
+  const getAvailableAddresses = () => {
+    const addressList: (SavedAddress & { isProfileAddress?: boolean })[] = [];
+
+    // Add profile address if available
+    if (user?.address?.street && user?.address?.city) {
+      addressList.push({
+        _id: 'profile-address',
+        label: 'Profile Address',
+        street: user.address.street,
+        city: user.address.city,
+        state: user.address.state,
+        zipCode: user.address.zipCode || '',
+        isDefault: true,
+        isProfileAddress: true,
+      } as SavedAddress & { isProfileAddress: boolean });
+    }
+
+    // Add saved addresses
+    addressList.push(...addresses);
+
+    return addressList;
+  };
+
   const fetchService = async () => {
     try {
       setLoading(true);
@@ -94,7 +118,26 @@ const ServiceDetailPage: React.FC = () => {
 
     setBookingLoading(true);
     try {
-      const selectedAddress = addresses.find(addr => addr._id === bookingForm.addressId);
+      let selectedAddress: SavedAddress | null = null;
+
+      // Check if it's profile address or saved address
+      if (bookingForm.addressId === 'profile-address') {
+        if (!user.address?.street) {
+          throw new Error('Profile address is incomplete');
+        }
+        selectedAddress = {
+          label: 'Profile Address',
+          street: user.address.street,
+          city: user.address.city,
+          state: user.address.state,
+          zipCode: user.address.zipCode || '',
+          isDefault: true,
+          coordinates: user.address.coordinates,
+        };
+      } else {
+        selectedAddress = addresses.find(addr => addr._id === bookingForm.addressId) || null;
+      }
+
       if (!selectedAddress) {
         throw new Error('Please select an address');
       }
@@ -113,7 +156,7 @@ const ServiceDetailPage: React.FC = () => {
       router.push('/my-services?tab=bookings');
     } catch (error: any) {
       console.error('Booking failed:', error);
-      alert(error.response?.data?.message || 'Booking failed. Please try again.');
+      alert(error.response?.data?.message || error.message || 'Booking failed. Please try again.');
     } finally {
       setBookingLoading(false);
     }
@@ -423,13 +466,13 @@ const ServiceDetailPage: React.FC = () => {
                     onChange={(e) => setBookingForm(prev => ({ ...prev, addressId: e.target.value }))}
                   >
                     <option value="">Choose address...</option>
-                    {addresses.map((address) => (
-                      <option key={address._id} value={address._id}>
+                    {getAvailableAddresses().map((address) => (
+                      <option key={address._id || 'profile-address'} value={address._id || 'profile-address'}>
                         {address.label} - {address.street}, {address.city}
                       </option>
                     ))}
                   </select>
-                  {addresses.length === 0 && (
+                  {getAvailableAddresses().length === 0 && (
                     <p className="text-sm text-red-600 mt-1">
                       Please add an address in your profile first.
                     </p>
@@ -474,7 +517,7 @@ const ServiceDetailPage: React.FC = () => {
                   </button>
                   <button
                     type="submit"
-                    disabled={bookingLoading || addresses.length === 0}
+                    disabled={bookingLoading || getAvailableAddresses().length === 0}
                     className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {bookingLoading ? 'Booking...' : 'Confirm Booking'}

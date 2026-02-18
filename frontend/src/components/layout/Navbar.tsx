@@ -54,12 +54,20 @@ const Navbar: React.FC = () => {
                   Dashboard
                 </Link>
                 {user?.userType === 'customer' && (
-                  <Link
-                    href="/services"
-                    className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
-                  >
-                    Browse Services
-                  </Link>
+                  <>
+                    <Link
+                      href="/services"
+                      className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
+                    >
+                      Browse Services
+                    </Link>
+                    <Link
+                      href="/bookings"
+                      className="text-gray-600 hover:text-gray-900 px-3 py-2 text-sm font-medium transition-colors"
+                    >
+                      My Bookings
+                    </Link>
+                  </>
                 )}
                 {user?.userType === 'service_provider' && (
                   <Link
