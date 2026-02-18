@@ -26,8 +26,6 @@ export const register = async (req: Request, res: Response): Promise<void> => {
       phone,
       userType,
       address,
-      // Set all users as verified for now (you can implement email verification later)
-      isVerified: true,
     };
 
     // Add service provider specific fields
