@@ -50,7 +50,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  userType: 'customer' | 'service_provider' | 'admin';
+  userType: 'customer' | 'service_provider';
   isVerified: boolean;
   avatar?: string;
   address?: {
@@ -236,56 +236,6 @@ export interface LoginData {
   password: string;
 }
 
-export interface ProviderApplication {
-  _id: string;
-  userId: string;
-  user: {
-    name: string;
-    email: string;
-    phone: string;
-  };
-  businessName: string;
-  businessDescription: string;
-  services: string[];
-  experienceYears: number;
-  documents: {
-    idProof: {
-      type: 'passport' | 'driving_license' | 'national_id' | 'aadhar';
-      number: string;
-      imageUrl: string;
-    };
-    certificates: {
-      name: string;
-      imageUrl: string;
-      issuer: string;
-      issueDate: string;
-    }[];
-    businessLicense?: {
-      number: string;
-      imageUrl: string;
-      issueDate: string;
-      expiryDate?: string;
-    };
-  };
-  address: {
-    street: string;
-    city: string;
-    state: string;
-    zipCode: string;
-    coordinates?: {
-      latitude: number;
-      longitude: number;
-    };
-  };
-  status: 'pending' | 'approved' | 'rejected' | 'under_review';
-  reviewedBy?: string;
-  reviewedAt?: string;
-  reviewNotes?: string;
-  rejectionReason?: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 // Auth API functions
 export const authAPI = {
   register: async (data: RegisterData): Promise<AuthResponse> => {
@@ -381,17 +331,9 @@ export const bookingAPI = {
     return response.data;
   },
 
-  // Customer bookings
   getMyBookings: async (params?: Record<string, string>) => {
     const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
-    const response = await api.get(`/bookings/customer${queryString}`);
-    return response.data;
-  },
-
-  // Service Provider bookings
-  getProviderBookings: async (params?: Record<string, string>) => {
-    const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
-    const response = await api.get(`/bookings/provider${queryString}`);
+    const response = await api.get(`/bookings${queryString}`);
     return response.data;
   },
 
@@ -404,30 +346,6 @@ export const bookingAPI = {
     const response = await api.patch(`/bookings/${id}/cancel`, {
       cancellationReason: reason,
     });
-    return response.data;
-  },
-
-  // Service Provider actions
-  acceptBooking: async (id: string) => {
-    const response = await api.patch(`/bookings/${id}/accept`);
-    return response.data;
-  },
-
-  rejectBooking: async (id: string, reason: string) => {
-    const response = await api.patch(`/bookings/${id}/reject`, {
-      rejectionReason: reason,
-    });
-    return response.data;
-  },
-
-  updateBookingStatus: async (id: string, status: string) => {
-    const response = await api.patch(`/bookings/${id}/status`, { status });
-    return response.data;
-  },
-
-  getEarnings: async (params?: Record<string, string>) => {
-    const queryString = params ? `?${new URLSearchParams(params).toString()}` : '';
-    const response = await api.get(`/bookings/provider/earnings${queryString}`);
     return response.data;
   },
 
@@ -502,115 +420,6 @@ export const supportAPI = {
 
   closeTicket: async (id: string) => {
     const response = await api.patch(`/support/${id}/close`);
-    return response.data;
-  },
-};
-
-// Provider Application API functions
-export const providerApplicationAPI = {
-  submitApplication: async (data: {
-    businessName: string;
-    businessDescription: string;
-    services: string[];
-    experienceYears: number;
-    documents: ProviderApplication['documents'];
-    address: ProviderApplication['address'];
-  }) => {
-    const response = await api.post('/provider-applications', data);
-    return response.data;
-  },
-
-  getMyApplication: async () => {
-    const response = await api.get('/provider-applications/my-application');
-    return response.data;
-  },
-
-  updateApplication: async (data: Partial<{
-    businessName: string;
-    businessDescription: string;
-    services: string[];
-    experienceYears: number;
-    documents: ProviderApplication['documents'];
-    address: ProviderApplication['address'];
-  }>) => {
-    const response = await api.put('/provider-applications/my-application', data);
-    return response.data;
-  },
-
-  uploadDocument: async (documentType: string, file: File) => {
-    const formData = new FormData();
-    formData.append('document', file);
-    const response = await api.post(`/provider-applications/upload/${documentType}`, formData, {
-      headers: {
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-    return response.data;
-  },
-
-  // Admin functions
-  getAllApplications: async (params?: { status?: string; page?: number; limit?: number }) => {
-    const queryString = params ? `?${new URLSearchParams(params as any).toString()}` : '';
-    const response = await api.get(`/provider-applications/admin/all${queryString}`);
-    return response.data;
-  },
-
-  reviewApplication: async (applicationId: string, data: {
-    status: 'approved' | 'rejected' | 'under_review';
-    reviewNotes?: string;
-    rejectionReason?: string;
-  }) => {
-    const response = await api.put(`/provider-applications/admin/${applicationId}/review`, data);
-    return response.data;
-  },
-};
-
-// Service Management API functions (for providers)
-export const serviceManagementAPI = {
-  getMyServices: async (params?: { page?: number; limit?: number; isActive?: boolean }) => {
-    const queryString = params ? `?${new URLSearchParams(params as any).toString()}` : '';
-    const response = await api.get(`/services/my-services${queryString}`);
-    return response.data;
-  },
-
-  createService: async (data: {
-    title: string;
-    description: string;
-    category: string;
-    price: { amount: number; type: 'fixed' | 'hourly' | 'negotiable'; currency: string };
-    availability?: {
-      days: string[];
-      timeSlots: { start: string; end: string }[];
-    };
-    duration?: { estimated: number; unit: 'minutes' | 'hours' | 'days' };
-    requirements?: string[];
-    tags?: string[];
-    images?: string[];
-  }) => {
-    const response = await api.post('/services', data);
-    return response.data;
-  },
-
-  updateService: async (serviceId: string, data: any) => {
-    const response = await api.put(`/services/my-services/${serviceId}`, data);
-    return response.data;
-  },
-
-  toggleServiceStatus: async (serviceId: string, isActive?: boolean) => {
-    const response = await api.patch(`/services/my-services/${serviceId}/toggle-status`, { isActive });
-    return response.data;
-  },
-
-  deleteService: async (serviceId: string) => {
-    const response = await api.delete(`/services/my-services/${serviceId}`);
-    return response.data;
-  },
-
-  updateAvailability: async (availability: {
-    days: string[];
-    timeSlots: { start: string; end: string }[];
-  }) => {
-    const response = await api.put('/services/my-availability', { availability });
     return response.data;
   },
 };

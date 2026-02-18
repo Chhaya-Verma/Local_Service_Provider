@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import Service from "../models/Service";
 import User from "../models/User";
-import ProviderApplication from "../models/ProviderApplication";
 import { AuthRequest } from "../middleware/auth";
 
 // Create a new service (Service Providers only)
@@ -12,16 +11,6 @@ export const createService = async (req: AuthRequest, res: Response): Promise<vo
       res.status(403).json({
         success: false,
         message: "Only service providers can create services",
-      });
-      return;
-    }
-
-    // Check if the service provider's application is approved
-    const application = await ProviderApplication.findOne({ userId: user._id });
-    if (!application || application.status !== "approved") {
-      res.status(403).json({
-        success: false,
-        message: "Your provider application must be approved before you can create services",
       });
       return;
     }
@@ -234,53 +223,6 @@ export const getServicesByProvider = async (req: AuthRequest, res: Response): Pr
   }
 };
 
-// Get services by provider (for service providers to manage their services)
-export const getMyServices = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const user = req.user;
-    if (!user || user.userType !== "service_provider") {
-      res.status(403).json({
-        success: false,
-        message: "Only service providers can access this endpoint",
-      });
-      return;
-    }
-
-    const { page = 1, limit = 10, isActive } = req.query;
-    const query: any = { serviceProviderId: user._id };
-    
-    if (isActive !== undefined) {
-      query.isActive = isActive === 'true';
-    }
-
-    const services = await Service.find(query)
-      .sort({ createdAt: -1 })
-      .limit(Number(limit))
-      .skip((Number(page) - 1) * Number(limit));
-
-    const total = await Service.countDocuments(query);
-
-    res.json({
-      success: true,
-      data: {
-        services,
-        pagination: {
-          total,
-          page: Number(page),
-          totalPages: Math.ceil(total / Number(limit))
-        }
-      }
-    });
-  } catch (error: any) {
-    console.error("Get my services error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch services",
-      error: error.message
-    });
-  }
-};
-
 // Update service
 export const updateService = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -356,124 +298,6 @@ export const updateService = async (req: AuthRequest, res: Response): Promise<vo
   }
 };
 
-// Update a service (Service Provider only - their own services)
-export const updateMyService = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const user = req.user;
-
-    if (!user || user.userType !== "service_provider") {
-      res.status(403).json({
-        success: false,
-        message: "Only service providers can update services",
-      });
-      return;
-    }
-
-    const service = await Service.findById(id);
-    if (!service) {
-      res.status(404).json({
-        success: false,
-        message: "Service not found",
-      });
-      return;
-    }
-
-    // Check if the service belongs to the current user
-    if (service.serviceProviderId.toString() !== user._id.toString()) {
-      res.status(403).json({
-        success: false,
-        message: "You can only update your own services",
-      });
-      return;
-    }
-
-    const updateData = { ...req.body };
-    
-    // Update service provider info if user info has changed
-    if (updateData.updateProviderInfo) {
-      updateData.serviceProvider = {
-        name: user.name,
-        businessName: user.businessName || user.name,
-        rating: user.rating || service.serviceProvider.rating,
-        totalReviews: user.totalReviews || service.serviceProvider.totalReviews,
-        avatar: user.avatar || service.serviceProvider.avatar,
-      };
-      delete updateData.updateProviderInfo;
-    }
-
-    const updatedService = await Service.findByIdAndUpdate(
-      id,
-      updateData,
-      { new: true, runValidators: true }
-    );
-
-    res.json({
-      success: true,
-      message: "Service updated successfully",
-      data: updatedService
-    });
-  } catch (error: any) {
-    console.error("Update service error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update service",
-      error: error.message
-    });
-  }
-};
-
-// Toggle service active status
-export const toggleServiceStatus = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const { isActive } = req.body;
-    const user = req.user;
-
-    if (!user || user.userType !== "service_provider") {
-      res.status(403).json({
-        success: false,
-        message: "Only service providers can update service status",
-      });
-      return;
-    }
-
-    const service = await Service.findById(id);
-    if (!service) {
-      res.status(404).json({
-        success: false,
-        message: "Service not found",
-      });
-      return;
-    }
-
-    // Check ownership
-    if (service.serviceProviderId.toString() !== user._id.toString()) {
-      res.status(403).json({
-        success: false,
-        message: "You can only update your own services",
-      });
-      return;
-    }
-
-    service.isActive = typeof isActive === 'boolean' ? isActive : !service.isActive;
-    await service.save();
-
-    res.json({
-      success: true,
-      message: `Service ${service.isActive ? 'activated' : 'deactivated'} successfully`,
-      data: service
-    });
-  } catch (error: any) {
-    console.error("Toggle service status error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update service status",
-      error: error.message
-    });
-  }
-};
-
 // Delete service
 export const deleteService = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -507,91 +331,6 @@ export const deleteService = async (req: AuthRequest, res: Response): Promise<vo
     res.status(500).json({
       success: false,
       message: "Internal server error while deleting service",
-    });
-  }
-};
-
-// Delete a service (Service Provider only - their own services)
-export const deleteMyService = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const { id } = req.params;
-    const user = req.user;
-
-    if (!user || user.userType !== "service_provider") {
-      res.status(403).json({
-        success: false,
-        message: "Only service providers can delete services",
-      });
-      return;
-    }
-
-    const service = await Service.findById(id);
-    if (!service) {
-      res.status(404).json({
-        success: false,
-        message: "Service not found",
-      });
-      return;
-    }
-
-    // Check ownership
-    if (service.serviceProviderId.toString() !== user._id.toString()) {
-      res.status(403).json({
-        success: false,
-        message: "You can only delete your own services",
-      });
-      return;
-    }
-
-    await Service.findByIdAndDelete(id);
-
-    res.json({
-      success: true,
-      message: "Service deleted successfully"
-    });
-  } catch (error: any) {
-    console.error("Delete service error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to delete service",
-      error: error.message
-    });
-  }
-};
-
-// Update availability for all services of a provider
-export const updateProviderAvailability = async (req: AuthRequest, res: Response): Promise<void> => {
-  try {
-    const user = req.user;
-    const { availability } = req.body;
-
-    if (!user || user.userType !== "service_provider") {
-      res.status(403).json({
-        success: false,
-        message: "Only service providers can update availability",
-      });
-      return;
-    }
-
-    // Update user's availability
-    await User.findByIdAndUpdate(user._id, { availability });
-
-    // Update availability for all services
-    await Service.updateMany(
-      { serviceProviderId: user._id },
-      { availability }
-    );
-
-    res.json({
-      success: true,
-      message: "Availability updated successfully"
-    });
-  } catch (error: any) {
-    console.error("Update availability error:", error);
-    res.status(500).json({
-      success: false,
-      message: "Failed to update availability",
-      error: error.message
     });
   }
 };
