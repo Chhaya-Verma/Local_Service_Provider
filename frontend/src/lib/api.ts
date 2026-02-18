@@ -364,6 +364,11 @@ export const bookingAPI = {
     });
     return response.data;
   },
+
+  updateBookingStatus: async (id: string, data: { status: string }) => {
+    const response = await api.patch(`/bookings/${id}/status`, data);
+    return response.data;
+  },
 };
 
 // Address API functions
