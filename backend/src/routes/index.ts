@@ -4,6 +4,7 @@ import serviceRoutes from "./services";
 import bookingRoutes from "./bookings";
 import supportRoutes from "./support";
 import addressRoutes from "./addresses";
+import adminRoutes from "./admin";
 
 const router = Router();
 
@@ -21,6 +22,9 @@ router.use("/support", supportRoutes);
 
 // Mount address routes
 router.use("/addresses", addressRoutes);
+
+// Mount admin routes
+router.use("/admin", adminRoutes);
 
 // Health check route
 router.get("/health", (req, res) => {

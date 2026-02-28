@@ -33,7 +33,17 @@ const LoginPage: React.FC = () => {
       const response = await login(data.email, data.password);
       
       if (response.success) {
-        router.push('/dashboard');
+        // Check if user is admin
+        if (response.data?.user?.userType === 'admin') {
+          // Give a small delay for state update
+          setTimeout(() => {
+            router.push('/admin/dashboard');
+          }, 100);
+        } else {
+          setTimeout(() => {
+            router.push('/dashboard');
+          }, 100);
+        }
       } else {
         setError(response.message || 'Login failed');
       }

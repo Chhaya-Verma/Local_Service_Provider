@@ -6,7 +6,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   phone: string;
-  userType: "customer" | "service_provider";
+  userType: "customer" | "service_provider" | "admin";
   isVerified: boolean;
   avatar?: string;
   address?: {
@@ -85,8 +85,8 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: [true, "User type is required"],
       enum: {
-        values: ["customer", "service_provider"],
-        message: "User type must be either customer or service_provider",
+        values: ["customer", "service_provider", "admin"],
+        message: "User type must be either customer, service_provider or admin",
       },
     },
     isVerified: {
