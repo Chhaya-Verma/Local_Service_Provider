@@ -50,7 +50,7 @@ export interface User {
   name: string;
   email: string;
   phone: string;
-  userType: 'customer' | 'service_provider';
+  userType: 'customer' | 'service_provider' | 'admin';
   isVerified: boolean;
   avatar?: string;
   address?: {

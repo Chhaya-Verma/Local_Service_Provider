@@ -14,6 +14,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isCustomer: boolean;
   isServiceProvider: boolean;
+  isAdmin: boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -139,6 +140,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     isAuthenticated: !!user,
     isCustomer: user?.userType === 'customer',
     isServiceProvider: user?.userType === 'service_provider',
+    isAdmin: user?.userType === 'admin',
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
